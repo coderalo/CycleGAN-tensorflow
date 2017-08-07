@@ -3,6 +3,7 @@ import sys
 import glob
 import json
 import numpy as np
+import subprocess
 from math import ceil, floor, log
 from utils import *
 from model_utils import *
@@ -37,13 +38,14 @@ class CycleGAN:
         self.images_dir = check_dir(FLAGS.images_dir)
         self.data_dir = FLAGS.data_dir
         self.dataset = FLAGS.dataset
-        self.data_dir = os.path.join(self.data_dir, self.dataset)
         self.L1_lambda = FLAGS.L1_lambda
+        self.identity_loss_scale = FLAGS.identity_loss_scale
         self.pool_size = FLAGS.pool_size
         self.pool_A, self.pool_B = ImagePool(self.pool_size), ImagePool(self.pool_size)
         self.is_train = FLAGS.is_train
         if self.is_train == True:
             self.training_log = check_log(FLAGS.training_log)
+        self.download_script = FLAGS.download_script
 
         self.prepare_data()
         self.build_model()
@@ -94,9 +96,11 @@ class CycleGAN:
         cycle_loss = cycle_loss_A + cycle_loss_B
         adv_loss_A2B = tf.reduce_mean(tf.square(self.DB_fake - tf.ones_like(self.DB_fake)))
         adv_loss_B2A = tf.reduce_mean(tf.square(self.DA_fake - tf.ones_like(self.DA_fake)))
+        identity_loss_A2B = self.identity_loss_scale * tf.reduce_mean(tf.abs(self.fake_B - self.real_A))
+        identity_loss_B2A = self.identity_loss_scale * tf.reduce_mean(tf.abs(self.fake_A - self.real_B))
         
-        self.GA2B_loss = cycle_loss + adv_loss_A2B
-        self.GB2A_loss = cycle_loss + adv_loss_B2A
+        self.GA2B_loss = cycle_loss + adv_loss_A2B + identity_loss_A2B
+        self.GB2A_loss = cycle_loss + adv_loss_B2A + identity_loss_B2A
 
         self.sample_A = tf.placeholder(tf.float32, [self.batch_size, self.input_height, self.input_width, self.channels], name="A_sample")
         self.sample_B = tf.placeholder(tf.float32, [self.batch_size, self.input_height, self.input_width, self.channels], name="B_sample")
@@ -211,10 +215,14 @@ class CycleGAN:
         batch_A, batch_B = self.get_batch(self.batch_size, is_random=True)
         fake_A, fake_B = self.sess.run([self.fake_A, self.fake_B], feed_dict={self.real_A: batch_A, self.real_B: batch_B})
         fake_A, fake_B = fake_A[0], fake_B[0]
-        image_A_path = os.path.join(self.images_dir, "{}_A.jpg".format(counter))
-        image_B_path = os.path.join(self.images_dir, "{}_B.jpg".format(counter))
-        imsave(image_A_path, np.squeeze(fake_A))
-        imsave(image_B_path, np.squeeze(fake_B))
+        image_real_A_path = os.path.join(self.images_dir, "{}_real_A.jpg".format(counter))
+        image_real_B_path = os.path.join(self.images_dir, "{}_real_B.jpg".format(counter))
+        image_fake_A_path = os.path.join(self.images_dir, "{}_fake_A.jpg".format(counter))
+        image_fake_B_path = os.path.join(self.images_dir, "{}_fake_B.jpg".format(counter))
+        imsave(image_real_A_path, np.squeeze(batch_A))
+        imsave(image_real_B_path, np.squeeze(batch_B))
+        imsave(image_fake_A_path, np.squeeze(fake_A))
+        imsave(image_fake_B_path, np.squeeze(fake_B))
         print_time_info("Iteration {:0>7} Save the images...".format(counter))
   
     ########################################################
@@ -243,6 +251,10 @@ class CycleGAN:
     ######################################################## 
 
     def prepare_data(self):
+        if os.path.isdir(os.path.join(self.data_dir, self.dataset)) == False:
+            print_time_info("Haven't download the dataset yet...download it now")
+            subprocess.run(["bash", self.download_script, self.dataset, self.data_dir])
+        self.data_dir = os.path.join(self.data_dir, self.dataset)
         if self.is_train:
             self.images_A = glob.glob(os.path.join(self.data_dir, "trainA/*.jpg"))
             self.images_B = glob.glob(os.path.join(self.data_dir, "trainB/*.jpg"))
