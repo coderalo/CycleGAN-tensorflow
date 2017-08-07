@@ -1,0 +1,7 @@
+/__pycache__
+/datasets
+/images
+/model
+/logs
+/*.log
+*sw[po]
