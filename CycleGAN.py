@@ -237,12 +237,22 @@ class CycleGAN:
 
         for i in range(32):
             batch_A, batch_B = self.get_batch(self.batch_size, is_random=True)
-            fake_A, fake_B = self.sess.run([self.fake_A, self_fake_B], feed_dict={self.real_A: batch_A, self.real_B: batch_B})
+            fake_A, fake_B, cycle_A, cycle_B = self.sess.run(
+                    [self.fake_A, self.fake_B, self.cycle_A, self.cycle_B], feed_dict={self.real_A: batch_A, self.real_B: batch_B})
             fake_A, fake_B = fake_A[0], fake_B[0]
-            image_A_path = os.path.join(self.images_dir, "{}_A.jpg".format(counter))
-            image_B_path = os.path.join(self.images_dir, "{}_B.jpg".format(counter))
-            imsave(image_A_path, np.squeeze(fake_A))
-            imsave(image_B_path, np.squeeze(fake_B))
+            cycle_A, cycle_B = cycle_A[0], cycle_B[0]
+            image_real_A_path = os.path.join(self.images_dir, "{}_test{}_real_A.jpg".format(before_counter, i))
+            image_real_B_path = os.path.join(self.images_dir, "{}_test{}_real_B.jpg".format(before_counter, i))
+            image_fake_A_path = os.path.join(self.images_dir, "{}_test{}_fake_A.jpg".format(before_counter, i))
+            image_fake_B_path = os.path.join(self.images_dir, "{}_test{}_fake_B.jpg".format(before_counter, i))
+            image_cycle_A_path = os.path.join(self.images_dir, "{}_test{}_cycle_A.jpg".format(before_counter, i))
+            image_cycle_B_path = os.path.join(self.images_dir, "{}_test{}_cycle_B.jpg".format(before_counter, i))
+            imsave(image_real_A_path, np.squeeze(batch_A))
+            imsave(image_real_B_path, np.squeeze(batch_B))
+            imsave(image_fake_A_path, np.squeeze(fake_A))
+            imsave(image_fake_B_path, np.squeeze(fake_B))
+            imsave(image_cycle_A_path, np.squeeze(cycle_A))
+            imsave(image_cycle_B_path, np.squeeze(cycle_B))
 
         print_time_info("Testing end!")
     
