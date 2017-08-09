@@ -10,6 +10,7 @@ from model_utils import *
 from data_utils import *
 from ImagePool import ImagePool
 from scipy.misc import imsave
+from skimage.io import imread
 
 class CycleGAN:
         
@@ -19,12 +20,8 @@ class CycleGAN:
     
     def __init__(self, sess, FLAGS):
         self.sess = sess
-        self.input_height, self.input_width, self.output_height, self.output_width = \
-                valid_input_and_output((FLAGS.input_height, FLAGS.input_width), 
-                        (FLAGS.output_height, FLAGS.output_width))
-        self.input_shape = (self.input_height, self.input_width)
-        self.output_shape = (self.output_height, self.output_width)
-        self.channels = FLAGS.channels
+        if FLAGS.is_grayscale: self.channels = 1
+        else: self.channels = 3
         self.crop = FLAGS.is_crop
         self.fc_dim = FLAGS.fc_dim
         self.fd_dim = FLAGS.fd_dim
@@ -33,9 +30,12 @@ class CycleGAN:
         self.save_step = FLAGS.save_step
         self.sample_step = FLAGS.sample_step
         self.verbose_step = FLAGS.verbose_step
-        self.checkpoint_dir = check_dir(FLAGS.checkpoint_dir)
-        self.save_dir = check_dir(FLAGS.save_dir)
-        self.images_dir = check_dir(FLAGS.images_dir)
+        check_dir(FLAGS.checkpoint_dir)
+        check_dir(FLAGS.save_dir)
+        check_dir(FLAGS.images_dir)
+        self.checkpoint_dir = check_dir(os.path.join(FLAGS.checkpoint_dir, FLAGS.dataset))
+        self.save_dir = check_dir(os.path.join(FLAGS.save_dir, FLAGS.dataset))
+        self.images_dir = check_dir(os.path.join(FLAGS.images_dir, FLAGS.dataset))
         self.data_dir = FLAGS.data_dir
         self.dataset = FLAGS.dataset
         self.L1_lambda = FLAGS.L1_lambda
@@ -271,6 +271,12 @@ class CycleGAN:
         else:
             self.images_A = glob.glob(os.path.join(self.data_dir, "testA/*.jpg"))
             self.images_B = glob.glob(os.path.join(self.data_dir, "testB/*.jpg"))
+        image_A = imread(self.images_A[0]) 
+        image_B = imread(self.images_B[0])
+        assert image_A.shape == image_B.shape, "NotSameSizeError"
+        self.input_shape = self.output_shape = image_A.shape[:2]
+        self.input_height, self.input_width = self.input_shape[0], self.input_shape[1]
+        self.output_height, self.output_width = self.output_shape[0], self.output_shape[1]
         print_time_info("Domain A: {} images, Domain B: {} images".format(len(self.images_A), len(self.images_B)))
         
         self.counter_A = self.counter_B = 0

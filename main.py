@@ -6,11 +6,7 @@ flags = tf.app.flags
 # DATA SETTINGS (INPUT & OUTPUT)
 flags.DEFINE_string("data_dir", "./datasets", "Directory of data [./datasets]")
 flags.DEFINE_string("dataset", "monet2photo", "The dataset would be used [monet2photo]")
-flags.DEFINE_integer("input_height", 256, "Height of input image [28]")
-flags.DEFINE_integer("input_width", None, "(Optional) Width of input image")
-flags.DEFINE_integer("output_height", 256, "Height of output image [28]")
-flags.DEFINE_integer("output_width", None, "(Optional) Width of output image")
-flags.DEFINE_integer("channels", 3, "Count of image channels [3]")
+flags.DEFINE_boolean("is_grayscale", False, "Turn the images into grayscale or not [False]")
 flags.DEFINE_boolean("is_crop", True, "Crop the images (if input_size > output_size) or not [True]")
 flags.DEFINE_string("download_script", "./download_dataset.sh", "The script for downloading dataset [download_dataset.sh]")
 # MODEL STRUCTURE SETTINGS
@@ -40,9 +36,6 @@ flags.DEFINE_integer("verbose_step", 100, "output log every N step [100]")
 # OTHER
 flags.DEFINE_boolean("is_train", True, "Training or testing [True]")
 FLAGS = flags.FLAGS
-
-if FLAGS.input_width == None: FLAGS.input_width = FLAGS.input_height
-if FLAGS.output_width == None: FLAGS.output_width = FLAGS.output_height
 
 run_config = tf.ConfigProto()
 run_config.gpu_options.allow_growth=True
